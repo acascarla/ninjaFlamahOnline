@@ -14,7 +14,6 @@ var Server = function() {
     var mLedges = [];  
     var mSprite = null; 
 
-
     // auxiliar
     //var mCanPlayDieAnimation = true; // nomes pot morir 1 a la vegada, no hi ha double kill
 
