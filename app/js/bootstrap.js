@@ -22,7 +22,28 @@ var phaser = new Phaser.Game(
             phaser.load.image('playButton', 'assets/buttons/playButton.png');
             phaser.load.image('replayButton', 'assets/buttons/replayButton.png');
             phaser.load.image('backButton', 'assets/buttons/backButton.png');
+            phaser.load.image('youLose', 'assets/finalBanners/youLose.png');
+            phaser.load.image('youWin', 'assets/finalBanners/youWin.png');
+
+            // load audios
+            phaser.load.audio('bell', 'assets/audio/bell.mp3');
+            phaser.load.audio('button', 'assets/audio/button.mp3');
+            phaser.load.audio('die', 'assets/audio/die.mp3');
+            phaser.load.audio('jump', 'assets/audio/jump.mp3');
+            phaser.load.audio('katanaAir', 'assets/audio/katanaAir.mp3');
+            phaser.load.audio('katanaHit', 'assets/audio/katanaHit.mp3');
+            phaser.load.audio('menuMelody', 'assets/audio/menuMelody.mp3');
+            phaser.load.audio('playMelody', 'assets/audio/playMelody.mp3');
+            phaser.load.audio('steps', 'assets/audio/steps.mp3');
+            phaser.load.audio('katanaPrepare', 'assets/audio/katanaPrepare.mp3');
+            phaser.load.audio('loser', 'assets/audio/loser.mp3');
+            phaser.load.audio('winner', 'assets/audio/winner.mp3');
+            phaser.load.audio('fight', 'assets/audio/fight.mp3');
+
+            // globals
+            phaser.audioManager = new AudioManager();
         }, 
+
         create: function() {
             //ninjaFlamah = new NinjaFlamah();
             phaser.state.start('menu');

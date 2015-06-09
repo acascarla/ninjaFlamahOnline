@@ -33,7 +33,13 @@ var World = function() {
         
         player.sprite.body.velocity.x = 0;
         phaser.physics.arcade.collide(player.sprite, mPlatforms);
-        
+
+        if (otherPlayer.time == null) {
+            otherPlayer.sprite.scale.setTo(0,0);
+        } else {
+            otherPlayer.sprite.scale.setTo(0.7,0.7);
+        }
+
         if (!mGameFinished){
             // Play logic
             playerControl(); // Realizar movimientos oportunos 
@@ -66,6 +72,7 @@ var World = function() {
             player.isMovingUp = false;
             player.attackStartedAt = null;
             player.killsInterfaceUpdated = 0;
+            player.killsInterfaceUpdatedOtherClient = 0
             player.lifesInterfaceNextUpdate = 3;
             player.gameIsFinished = false;
             player.isAbleToMove = true;
@@ -109,6 +116,7 @@ var World = function() {
             otherPlayer.isMovingUp = false;
             otherPlayer.attackStartedAt = null;
             otherPlayer.killsInterfaceUpdated = 0;
+            otherPlayer.killsInterfaceUpdatedOtherClient = 0
             otherPlayer.lifesInterfaceNextUpdate = 3;
             otherPlayer.gameIsFinished = false;
             otherPlayer.isAbleToMove = true;
@@ -147,6 +155,7 @@ var World = function() {
         playerToServer.isMovingUp = player.isMovingUp;
         playerToServer.attackStartedAt = player.attackStartedAt;
         playerToServer.killsInterfaceUpdated = player.killsInterfaceUpdated;
+        playerToServer.killsInterfaceUpdatedOtherClient = player.killsInterfaceUpdatedOtherClient;
         playerToServer.lifesInterfaceNextUpdate = player.lifesInterfaceNextUpdate;
         playerToServer.gameIsFinished = player.gameIsFinished;
         playerToServer.isAbleToMove = player.isAbleToMove;
@@ -183,14 +192,18 @@ var World = function() {
             otherPlayer.isMovingUp = serverPlayers[i].isMovingUp;
             otherPlayer.attackStartedAt = serverPlayers[i].attackStartedAt;
             otherPlayer.killsInterfaceUpdated = serverPlayers[i].killsInterfaceUpdated;
+            otherPlayer.killsInterfaceUpdatedOtherClient = serverPlayers[i].killsInterfaceUpdatedOtherClient;
             otherPlayer.lifesInterfaceNextUpdate = serverPlayers[i].lifesInterfaceNextUpdate;
             otherPlayer.gameIsFinished = serverPlayers[i].gameIsFinished;
             otherPlayer.isAbleToMove = serverPlayers[i].isAbleToMove;
             otherPlayer.killedAt = serverPlayers[i].killedAt;
             otherPlayer.resetGame = serverPlayers[i].resetGame;
+            otherPlayer.time = serverPlayers[i].time;
             otherPlayer.sprite.position.x = serverPlayers[i].x;
             otherPlayer.sprite.position.y = serverPlayers[i].y;
             otherPlayer.sprite.justAttacked = serverPlayers[i].justAttacked;
+        }else{
+            otherPlayer.sprite.position.x = -200;
         }
         // update myself when needed
         if (serverPlayers[me] != null){
@@ -202,6 +215,7 @@ var World = function() {
                 mGameFinished = player.gameIsFinished;
             }
             player.time = serverPlayers[me].time;
+            player.killsInterfaceUpdatedOtherClient = serverPlayers[me].killsInterfaceUpdatedOtherClient;
         }
     };
 
@@ -210,6 +224,7 @@ var World = function() {
     // Això es cridat pel player quan tots els players estan Ready, fa la transició d'interface a començament del joc
     this.removeReadySprites = function(){
         if (mCanRemoveReadySprites){
+            phaser.audioManager.playSound('fight',0,4,false);
             mInterfaceElementsContainer.forEach(function(readyState) {
                 phaser.add.tween(readyState.sprite.scale).to({x: 0, y:0}, 500).start();
                 phaser.add.tween(readyState.sprite.position).to({x: 0, y:0}, 700).start();
@@ -236,6 +251,7 @@ var World = function() {
 
     this.changeReadyState = function(readyState){
         if (!mGameStarted){
+            phaser.audioManager.playSound('katanaPrepare');
             player.readyState = readyState;
         }
     };
@@ -249,6 +265,7 @@ var World = function() {
 
     this.attack = function(){
         if (player.isAbleToMove && !mGameFinished){
+            phaser.audioManager.playSound('katanaAir',0,1,true);
             if (player.isFacingRight){
                 player.sprite.animations.play('attackRight');
                 player.attackStartedAt = player.time;
@@ -283,10 +300,12 @@ var World = function() {
     var playerControl = function(){
         if (player.isAbleToMove){ // Moviment normal
             if (player.isMovingLeft){
+                //phaser.audioManager.playSound('steps', true);
                 player.sprite.body.velocity.x = -490;
                 if (player.time - player.attackStartedAt > 100) player.sprite.animations.play('left');
                 player.isFacingRight = false;
             }else if(player.isMovingRight){
+                //phaser.audioManager.playSound('steps', true);
                 player.sprite.body.velocity.x = 490;
                 if (player.time - player.attackStartedAt > 100) player.sprite.animations.play('right');
                 player.isFacingRight = true;
@@ -295,6 +314,7 @@ var World = function() {
             }
             if (player.isMovingUp){
                 if(player.sprite.body.touching.down) {
+                    phaser.audioManager.playSound('jump', true);
                     player.sprite.body.velocity.y = -1100;
                     player.isMovingUp = false;
                 }
@@ -309,6 +329,7 @@ var World = function() {
         }else{ // lógica de quan et maten
             if (player.time - player.killedAt < 1000){
                 if (mCanPlayDieAnimation){ 
+                    phaser.audioManager.playSound('die',0,1,false);
                     if (player.isFacingRight) player.sprite.animations.play('dieRight');
                     if (!player.isFacingRight) player.sprite.animations.play('dieLeft');
                     mCanPlayDieAnimation = false;
@@ -335,6 +356,7 @@ var World = function() {
     }
 
     var onNoDirectionPressed = function() {
+        //phaser.audioManager.stopSound('steps');
         player.sprite.animations.stop();
         player.sprite.frame = 17;
         if (player.isFacingRight){
@@ -491,20 +513,29 @@ var World = function() {
                 player.killsInterfaceUpdated++;
             }
             //  otherPlayer
-                //console.log("otherplayer kill:", otherPlayer.kills, "  kIU: ", otherPlayer.killsInterfaceUpdated);
-            if (otherPlayer.kills > otherPlayer.killsInterfaceUpdated){
+            if (otherPlayer.kills > otherPlayer.killsInterfaceUpdatedOtherClient){
                 if(otherPlayer.id == "Player1"){
                     mInterfaceElementsContainer[0].kills[otherPlayer.kills-1].scale.setTo(1.1);
                 }else{
                     mInterfaceElementsContainer[1].kills[otherPlayer.kills-1].scale.setTo(1.1);
                 }
-                otherPlayer.killsInterfaceUpdated++;
+                otherPlayer.killsInterfaceUpdatedOtherClient++;
             }
+            //updatePlayerInServer(otherPlayer);
             
         }else{ // Si s'ha acavat el joc perque han matat a algú 3 cops -> Mostro la interface de win lose
             if (mMustDrawFinishInterface){
-                mInterfaceElementsContainer[0].replayButton = phaser.add.button(phaser.width/2-75, phaser.height/2-200, 'replayButton', replayButtonClick, this);
+                mInterfaceElementsContainer[0].replayButton = phaser.add.button(phaser.width/2-75, phaser.height/2-250, 'replayButton', replayButtonClick, this);
                 mInterfaceElementsContainer[0].backButton = phaser.add.button(phaser.width/2-75, phaser.height/2+20, 'backButton', backButtonClick, this);
+
+                if (player.lifes == 0){
+                    phaser.audioManager.playSound('loser',0,1,false);
+                    mInterfaceElementsContainer[0].winLoseBanner = phaser.add.sprite(phaser.width/2-381, 125, 'youLose');
+                }else{
+                    phaser.audioManager.playSound('winner',0,1,false);
+                    mInterfaceElementsContainer[0].winLoseBanner = phaser.add.sprite(phaser.width/2-381, 125, 'youWin');
+                }
+
                 mMustDrawFinishInterface = false;
             }
         }
@@ -521,14 +552,12 @@ var World = function() {
         var simplePlayer = parsePlayerForServer(player);
         socket.emit('goBackMenu',simplePlayer);
         phaser.state.start('menu');
-        console.log("click back");
     };
 
     var resetInterface = function(){
         // Change property "resetGame" to true to make know to the server that player has clicked reset
         //mPlayers.forEach(function(player){ // Això quan estigui amb el server de veritat es fara nomes per 1 player, el del client
             player.resetGame = true;
-            console.log("reset1");
             resetGameCalled();
             player.gameIsFinished = false;
             // Hide interface
@@ -555,8 +584,11 @@ var World = function() {
         mInterfaceElementsContainer[1].text.scale.setTo(0,0);
 
         // Buttons
-        mInterfaceElementsContainer[0].replayButton.scale.setTo(0.0);
-        mInterfaceElementsContainer[0].backButton.scale.setTo(0.0);
+        mInterfaceElementsContainer[0].replayButton.scale.setTo(0,0);
+        mInterfaceElementsContainer[0].backButton.scale.setTo(0,0);
+
+        // Win lose banner
+        mInterfaceElementsContainer[0].winLoseBanner.scale.setTo(0,0);
 
         // Reset initial interface
         instantiateInterface();
@@ -632,13 +664,8 @@ var World = function() {
     
 
     var onPlayerOverlap = function(player1, player2) {
-        if (!mGameFinished){
-            //console.log("overlap - ", player.id, " lifes: ", player.lifes, " kills: ", player.kills);
-            //console.log("overlap - ", otherPlayer.id, " lifes: ", otherPlayer.lifes, " kills: ", otherPlayer.kills);    
-        }
         
         if (player.sprite.justAttacked && otherPlayer.isAbleToMove){
-            console.log(player.id, " attacked");
             if ((player.isFacingRight && player.sprite.position.x < otherPlayer.sprite.position.x) || (!player.isFacingRight && player.sprite.position.x > otherPlayer.sprite.position.x)){
                 killSomeOne(player, otherPlayer);
             }
@@ -652,6 +679,8 @@ var World = function() {
     };
 
     var killSomeOne = function(killer, killed){
+        phaser.audioManager.playSound('katanaHit',0,1,false);
+        phaser.audioManager.playSound('die',0,1,false);
         killed.lifes--;
         killer.kills++;
         killed.killedAt = killed.time;
@@ -661,9 +690,7 @@ var World = function() {
             killed.gameIsFinished = true;
             killer.gameIsFinished = true;
         }
-        console.log(killer.id, " has killed ", killed.id )
         updatePlayerInServer(killed);
-        console.log("send killed data");
     };
 
     var enablePhysics = function() {
@@ -690,7 +717,7 @@ var World = function() {
     };
 
     var createOtherPlayerSprite = function(){
-        mSpriteOtherPlayer = phaser.add.sprite(0, 0, 'player');    
+        mSpriteOtherPlayer = phaser.add.sprite(-100, 0, 'player');    
         mSpriteOtherPlayer.animations.add('left', [0, 1, 2], 20, true);
         mSpriteOtherPlayer.animations.add('right', [3, 4, 5], 20, true);
         mSpriteOtherPlayer.animations.add('jumpLeft', [8, 7, 6], 10, true);
@@ -704,12 +731,17 @@ var World = function() {
     };
 
     var finishGame = function(){
-        if (player.time - player.killedAt < 1000){
+        phaser.audioManager.playSound('die',0,1,false);
+        if (player.lifes == 0){
             if (mCanPlayDieAnimation){ 
                 if (player.isFacingRight) player.sprite.animations.play('dieRight');
                 if (!player.isFacingRight) player.sprite.animations.play('dieLeft');
                 mCanPlayDieAnimation = false;
             }
+        }else{
+            // TODO: var en el objecte other player per saber si pot reproduirse la animacio de die i fer el mateix que amb el player
+            if (otherPlayer.isFacingRight) otherPlayer.sprite.animations.play('dieRight');
+            if (!otherPlayer.isFacingRight) otherPlayer.sprite.animations.play('dieLeft');
         }
     }
 
