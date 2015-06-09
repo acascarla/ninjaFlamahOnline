@@ -13,8 +13,8 @@ var phaser = new Phaser.Game(
             phaser.load.image('block2', 'assets/doubleBlock.png');
             phaser.load.image('block4', 'assets/quadrupleBlock.png');
             phaser.load.image('block8', 'assets/octupleBlock.png');
-            phaser.load.spritesheet('dude', 'assets/dude.png', 32, 48);
             phaser.load.spritesheet('player', 'assets/sprite/player.png', 60, 65);
+            phaser.load.spritesheet('player2', 'assets/sprite/player2.png', 60, 65);
             phaser.load.image('red', 'assets/red.png');
             phaser.load.image('green', 'assets/green.png');
             phaser.load.image('heart', 'assets/heart.png');

@@ -35,7 +35,7 @@ var World = function() {
         phaser.physics.arcade.collide(player.sprite, mPlatforms);
 
         if (otherPlayer.time == null) {
-            otherPlayer.sprite.scale.setTo(0,0);
+            otherPlayer.sprite.scale.setTo(0.0,0.0);
         } else {
             otherPlayer.sprite.scale.setTo(0.7,0.7);
         }
@@ -62,8 +62,8 @@ var World = function() {
     this.instantiatePlayer = function(mId){
        //create players sprites
        if (mId != 'spectator'){
-            createPlayerSprite();
             player.id = mId;
+            createPlayerSprite();
             player.readyState = false;
             player.lifes = 3;
             player.kills = 0;
@@ -102,12 +102,12 @@ var World = function() {
 
 
             // Instantiate other player
-            createOtherPlayerSprite();
             if (mId == 'Player1'){
                 otherPlayer.id = 'Player2';
             }else if(mId == 'Player2'){
                 otherPlayer.id = 'Player1';
             }
+            createOtherPlayerSprite();
             otherPlayer.readyState = false;
             otherPlayer.lifes = 3;
             otherPlayer.kills = 0;
@@ -666,7 +666,7 @@ var World = function() {
     var onPlayerOverlap = function(player1, player2) {
         
         if (player.sprite.justAttacked && otherPlayer.isAbleToMove){
-            if ((player.isFacingRight && player.sprite.position.x < otherPlayer.sprite.position.x) || (!player.isFacingRight && player.sprite.position.x > otherPlayer.sprite.position.x)){
+            if ((player.isFacingRight && player.sprite.position.x-20 < otherPlayer.sprite.position.x) || (!player.isFacingRight && player.sprite.position.x+20 > otherPlayer.sprite.position.x)){
                 killSomeOne(player, otherPlayer);
             }
             player.sprite.justAttacked = false;
@@ -703,7 +703,12 @@ var World = function() {
 
     // Player sprites
     var createPlayerSprite = function(){
-        mSprite = phaser.add.sprite(0, 0, 'player');    
+        console.log(player.id);
+        if (player.id == "Player1") {
+            mSprite = phaser.add.sprite(0, 0, 'player');
+        }else{
+            mSprite = phaser.add.sprite(0, 0, 'player2');
+        }
         mSprite.animations.add('left', [0, 1, 2], 20, true);
         mSprite.animations.add('right', [3, 4, 5], 20, true);
         mSprite.animations.add('jumpLeft', [8, 7, 6], 10, true);
@@ -717,7 +722,11 @@ var World = function() {
     };
 
     var createOtherPlayerSprite = function(){
-        mSpriteOtherPlayer = phaser.add.sprite(-100, 0, 'player');    
+        if (player.id == "Player1") {
+            mSpriteOtherPlayer = phaser.add.sprite(0, 0, 'player2');
+        }else{
+            mSpriteOtherPlayer = phaser.add.sprite(0, 0, 'player');
+        }
         mSpriteOtherPlayer.animations.add('left', [0, 1, 2], 20, true);
         mSpriteOtherPlayer.animations.add('right', [3, 4, 5], 20, true);
         mSpriteOtherPlayer.animations.add('jumpLeft', [8, 7, 6], 10, true);
