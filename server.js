@@ -153,8 +153,9 @@ io.sockets.on('connection', function(socket){
         serverLogic.removePlayer(socket.id);
     });
 
-    socket.on('goBackMenu', function(player){
-        console.log('user disconnected: ',player.id);
+    socket.on('goBackMenu', function(){
+        console.log('user disconnected: ',socket.id, " - Back to Menu");
+        serverLogic.removePlayer(socket.id);
     });
 
     // WORLD PETICIONS

@@ -81,6 +81,7 @@ var Player = function(worldReference) {
     
     // Constructor
     (function() {
+        console.log("create player");
         wasd = {
             up: phaser.input.keyboard.addKey(Phaser.Keyboard.W),
             left: phaser.input.keyboard.addKey(Phaser.Keyboard.A),

@@ -25,6 +25,10 @@ var World = function() {
     var mGameStarted = false;
     var mGameFinished = false;
     var mMustDrawFinishInterface = true;
+
+    //sync
+    var currentDecimal = 0;
+    var lastDecimalAux = 0;
     
     // Això agafa tota la info del server (recollida pel player i enviada aqui pel mateix) i actualitza tot el world (players, attacks, kills, etc)
     this.updateThisWorld = function(){
@@ -43,8 +47,14 @@ var World = function() {
         if (!mGameFinished){
             // Play logic
             playerControl(); // Realizar movimientos oportunos 
-            // Sync
-            updatePlayerInServer(player); // Notificar al server de nuestros Movimientos - Esto automáticamente ya recoge la info del otro player, en el server se hace el emit del otro player y en el player hay un socket.on que lo recoge y se lo pasa al updatePlayersInClient de aqui
+            // Sync - If latency appear, uncomment this if and currentDecimal update, that makes a 10tickrate x sec
+            //if (currentDecimal != lastDecimalAux){
+                //console.log("Send data");    
+                updatePlayerInServer(player); // Notificar al server de nuestros Movimientos - Esto automáticamente ya recoge la info del otro player, en el server se hace el emit del otro player y en el player hay un socket.on que lo recoge y se lo pasa al updatePlayersInClient de aqui
+             //   lastDecimalAux = currentDecimal;
+            //}
+            //currentDecimal = getPartNumber(phaser.time.now/1000,"frac",1);
+
             // Paint other player
             updateOtherPlayerInClient();
             // Check for GameStart
@@ -58,6 +68,19 @@ var World = function() {
         updateInterface(); // TODO: quan tot funcioni ficar la linea de dalt dins de updateInterface
 
     };
+
+    var getPartNumber = function(number,part,decimals) {
+        if ((decimals <= 0) || (decimals == null)) decimals =1;
+        decimals = Math.pow(10,decimals);
+
+        var intPart = Math.floor(number);
+        var fracPart = (number % 1)*decimals;
+        fracPart = fracPart.toFixed(0);
+        if (part == 'int')
+        return intPart;
+        else
+        return fracPart;
+    }
 
     this.instantiatePlayer = function(mId){
        //create players sprites
@@ -274,6 +297,8 @@ var World = function() {
                 player.attackStartedAt = player.time;
             }
             player.sprite.justAttacked = true;
+            // if attacked, send info to the server to replay the other client
+            updatePlayerInServer(player);
         }
     };
 
@@ -369,19 +394,36 @@ var World = function() {
     var updateOtherPlayerInClient = function() {
         if (otherPlayer.isAbleToMove){ // Moviment normal
             if (otherPlayer.isMovingLeft){
-                otherPlayer.sprite.animations.play('left');
+                if (otherPlayer.time - otherPlayer.attackStartedAt > 200) otherPlayer.sprite.animations.play('left');
             }else if(otherPlayer.isMovingRight){
-                otherPlayer.sprite.animations.play('right');
+                if (otherPlayer.time - otherPlayer.attackStartedAt > 200) otherPlayer.sprite.animations.play('right');
             }else{
-                onNoDirectionPressedOtherPlayer();
+                if (otherPlayer.time - otherPlayer.attackStartedAt > 200) onNoDirectionPressedOtherPlayer();
             }
             if (otherPlayer.isMovingUp){
                 if (otherPlayer.isFacingRight){
-                    otherPlayer.sprite.animations.play('jumpRight');
+                    if (otherPlayer.time - otherPlayer.attackStartedAt > 200) otherPlayer.sprite.animations.play('jumpRight');
                 }else{
-                    otherPlayer.sprite.animations.play('jumpLeft');
+                    if (otherPlayer.time - otherPlayer.attackStartedAt > 200) otherPlayer.sprite.animations.play('jumpLeft');
                 }
             }
+
+
+            // Attack animation
+            //if (otherPlayer.time != null && otherPlayer.attackStartedAt && otherPlayer.time - otherPlayer.attackStartedAt < 1000){
+            if (otherPlayer.sprite.justAttacked){
+                console.log("other player time: ", otherPlayer.time, "   otherPlayer.attackStartedAt: ", otherPlayer.attackStartedAt);
+                phaser.audioManager.playSound('katanaAir',0,1,true);
+                if (otherPlayer.isFacingRight){
+                    console.log("attack to right animation");
+                    otherPlayer.sprite.animations.play('attackRight');
+                }else if(!otherPlayer.isFacingRight){
+                    console.log("attack to left animation");
+                    otherPlayer.sprite.animations.play('attackLeft');
+            }
+            otherPlayer.sprite.justAttacked = false;
+        }
+
         }else{ // lógica de quan et maten
             if (otherPlayer.time - otherPlayer.killedAt < 1000){
                 if (mCanPlayDieAnimation){ 
@@ -534,8 +576,9 @@ var World = function() {
                 }else{
                     phaser.audioManager.playSound('winner',0,1,false);
                     mInterfaceElementsContainer[0].winLoseBanner = phaser.add.sprite(phaser.width/2-381, 125, 'youWin');
-                }
 
+                }
+                mFinishTime = phaser.time.now;
                 mMustDrawFinishInterface = false;
             }
         }
@@ -664,7 +707,6 @@ var World = function() {
     
 
     var onPlayerOverlap = function(player1, player2) {
-        
         if (player.sprite.justAttacked && otherPlayer.isAbleToMove){
             if ((player.isFacingRight && player.sprite.position.x-20 < otherPlayer.sprite.position.x) || (!player.isFacingRight && player.sprite.position.x+20 > otherPlayer.sprite.position.x)){
                 killSomeOne(player, otherPlayer);
